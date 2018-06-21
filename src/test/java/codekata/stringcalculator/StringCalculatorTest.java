@@ -1,6 +1,5 @@
 package codekata.stringcalculator;
 
-import static codekata.stringcalculator.StringCalculator.add;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -40,13 +39,16 @@ public class StringCalculatorTest {
 
     @Test
     public void testAdd() throws Exception {
-	assertThat(add(input)).isEqualTo(expected);
+	StringCalculator stringCalculator = new StringCalculator();
+
+	assertThat(stringCalculator.add(input)).isEqualTo(expected);
     }
 
     @Test
     public void testAdd_exceptionHandling() throws Exception {
+	StringCalculator stringCalculator = new StringCalculator();
 	assertThatThrownBy(
-		() -> StringCalculator.add("//\n\n1\n-2\n-33"))
+		() -> stringCalculator.add("//\n\n1\n-2\n-33"))
 			.hasMessage("negatives not allowed [-2, -33]");
 
     }

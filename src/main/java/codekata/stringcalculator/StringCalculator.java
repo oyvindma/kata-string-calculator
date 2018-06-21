@@ -1,68 +1,60 @@
 package codekata.stringcalculator;
 
 import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.joining;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import codekata.stringcalculator.extractors.Extractor1;
+import codekata.stringcalculator.extractors.MultivaluedDelimiterExtractor;
+import codekata.stringcalculator.extractors.NillExtractor;
+import codekata.stringcalculator.extractors.NoConfigExtractor;
+import codekata.stringcalculator.extractors.NumberExtractor;
 
 public class StringCalculator {
 
-    static int add(String tallsekvens) {
-	int result = 0;
-	String delimiter = "[\n,]";
+    private List<NumberExtractor> extractors = new ArrayList<>();
 
-	if (tallsekvens == null || tallsekvens.trim().equals("")) {
-	    result = 0;
-	} else {
-	    if (tallsekvens.startsWith("//")) {
-		if (tallsekvens.matches("(?s)^//.\\R.*")) {
-
-		    Matcher matcher = Pattern.compile("^//(\\R|.+)(?=\\R)").matcher(tallsekvens);
-		    matcher.find();
-		    delimiter = matcher.group(1);
-
-		    tallsekvens = tallsekvens.substring(matcher.end() + 1);
-
-		} else if (tallsekvens.startsWith("//[")) {
-		    Matcher matcher = Pattern.compile("(?s)(?:\\[)([^\\]]+)*(?:\\])").matcher(tallsekvens);
-		    List<String> delimiters = new ArrayList<>();
-		    while (matcher.find()) {
-			delimiters.add(matcher.group(1));
-		    }
-		    String delimiterOptions = delimiters.stream()
-			    .map(s -> Pattern.quote(s))
-			    .collect(joining("|"));
-
-		    delimiter = "(?:" + delimiterOptions + ")";
-		    tallsekvens = tallsekvens.substring(tallsekvens.indexOf("\n") + 1);
-
-		} else {
-		    throw new RuntimeException("not implemented");
-		}
-
-	    }
-
-	    int[] numbers = stream(tallsekvens.split(delimiter)).mapToInt(Integer::valueOf).toArray();
-	    int[] negativeNumbers = stream(numbers).filter((int a) -> a < 0).toArray();
-
-	    if (negativeNumbers.length > 0) {
-		throw new RuntimeException("negatives not allowed " + Arrays.toString(negativeNumbers));
-	    }
-
-	    result = stream(numbers).sum();
-	}
-	return result;
+    public StringCalculator() {
+	extractors.add(new NillExtractor());
+	extractors.add(new NoConfigExtractor());
+	extractors.add(new Extractor1());
+	extractors.add(new MultivaluedDelimiterExtractor());
     }
 
-}
+    public int add(String tallsekvens) {
 
-interface NumberExtractor {
+	int[] numbers = extractNumbers(tallsekvens);
 
-    public boolean accept(String numberLIst);
+	validateExtractionSucceeded(tallsekvens, numbers);
 
-    public int[] extract();
+	validateThatOnlyPositiveNumbers(numbers);
+
+	return stream(numbers).sum();
+    }
+
+    private int[] extractNumbers(String tallsekvens) {
+	int[] numbers = {};
+	for (NumberExtractor numberExtractor : extractors) {
+	    if (numberExtractor.accept(tallsekvens)) {
+		numbers = numberExtractor.extract(tallsekvens);
+		break;
+	    }
+	}
+	return numbers;
+    }
+
+    private void validateThatOnlyPositiveNumbers(int[] numbers) {
+	int[] negativeNumbers = stream(numbers).filter((int a) -> a < 0).toArray();
+	if (negativeNumbers.length > 0) {
+	    throw new RuntimeException("negatives not allowed " + Arrays.toString(negativeNumbers));
+	}
+    }
+
+    private void validateExtractionSucceeded(String tallsekvens, int[] numbers) {
+	if (numbers.length == 0)
+	    throw new IllegalArgumentException("No extractor defined for string" + tallsekvens);
+    }
+
 }
